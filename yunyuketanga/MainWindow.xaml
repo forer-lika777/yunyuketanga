@@ -1,0 +1,98 @@
+﻿<Window x:Class="yunyuketanga.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:yunyuketanga"
+        xmlns:models="clr-namespace:yunyuketanga.Models"
+        xmlns:viewmodels="clr-namespace:yunyuketanga.ViewModels"
+        xmlns:converters="clr-namespace:yunyuketanga.Converters"
+        mc:Ignorable="d"
+        Title="MainWindow"
+        Height="450"
+        Width="800">
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Window.Resources>
+    <Grid>
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+            <TextBox x:Name="UsernameInput"
+                     Text="{Binding Path=Username, UpdateSourceTrigger=PropertyChanged}"
+                     Background="LightGray"
+                     Width="200"
+                     Height="20"
+                     Margin="10" />
+            <TextBox x:Name="PasswordInput"
+                     Text="{Binding Path=Password, UpdateSourceTrigger=PropertyChanged}"
+                     Background="LightGray"
+                     Width="200"
+                     Height="20"
+                     Margin="10"
+                     VerticalAlignment="Top" />
+            <Button x:Name="LoginButton"
+                    Width="200"
+                    Height="20"
+                    Margin="10"
+                    Content="获取"
+                    Command="{Binding Path=PerformLoginCommand}"/>
+            <Label x:Name="StatusLabel"
+                   Content="{Binding Path=StatusInfo}"
+                   Height="25"
+                   Width="200"/>
+            <DataGrid x:Name="CourseList"
+                      Margin="10"
+                      ItemsSource="{Binding Path=CourseCollection}"
+                      Visibility="{Binding Path=LoginSuccess, Converter={StaticResource BoolToVisibilityConverter}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="课程名称"
+                                        Binding="{Binding FullName}"
+                                        Width="*" />
+                    <DataGridTemplateColumn Header="操作"
+                                            Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="查看子课程"
+                                        CommandParameter="{Binding Path=Id}"
+                                        Command="{Binding Path=DataContext.FetchAndShowSubCoursesCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+        <StackPanel x:Name="SubCoursesPanel"
+                    Height="400"
+                    Visibility="{Binding Path=SubCoursesVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Background="White">
+            <Button x:Name="CloseSubCoursesButton"
+                    Command="{Binding Path=CloseSubCoursesCommand}"
+                    Content="x"
+                    Width="20"
+                    Height="20"
+                    HorizontalAlignment="Right" />
+            <DataGrid x:Name="SubCoursesList"
+                      ItemsSource="{Binding Path=SubCourseCollection}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="课程ID"
+                                        Binding="{Binding CourseId}"
+                                        Width="80" />
+                    <DataGridTextColumn Header="课程名称"
+                                        Binding="{Binding Name}"
+                                        Width="*" />
+                    <DataGridTemplateColumn Header="操作"
+                                            Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="刷课"
+                                        CommandParameter="{Binding CourseId}"
+                                        Command="{Binding Path=DataContext.WatchVideoCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </Grid>
+</Window>

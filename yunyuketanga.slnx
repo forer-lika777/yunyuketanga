@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="yunyuketanga.Tests/yunyuketanga.Tests.csproj" Id="9831ef0a-d407-4f3c-9bb8-3b5907a46464" />
+  <Project Path="yunyuketanga/yunyuketanga.csproj" />
+</Solution>

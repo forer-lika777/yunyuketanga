@@ -68,6 +68,16 @@ public class SubCourse
     public string Name { get; set; } = string.Empty;
 
     public int CourseId { get; set; }
+
+    public string Weight { get; set; } = string.Empty;
+
+    public string Score { get; set; } = string.Empty;
+
+    public string Range { get; set; } = string.Empty;
+
+    public string Percentage { get; set; } = string.Empty;
+
+    public string ContributionPercentage { get; set; } = string.Empty;
 }
 
 //{

@@ -11,7 +11,7 @@ using yunyuketanga.Models;
 
 namespace yunyuketanga.Services;
 
-public class CrawlerService
+public class CrawlerService : IDisposable
 {
     private readonly HttpClient httpClient;
     private readonly HttpClientHandler httpClientHandler;
@@ -207,24 +207,29 @@ public class CrawlerService
             if (remaining > 0)
             {
                 // 加随机抖动（只加延迟，不提前）
-                int jitter = Random.Shared.Next(0, 3000);
-                int waitTime = (int)(remaining * 1000) + jitter;
-                Debug.WriteLine($"等待 {waitTime} 秒时间");
+                int waitTime = (int)(remaining * 1000);
+                Debug.WriteLine($"等待 {waitTime} 毫秒时间");
                 await Task.Delay(waitTime);
             }
 
             // 当前实际经过的秒数
             int now = (int)Math.Min(sw.Elapsed.TotalSeconds, durationSeconds);
-            Debug.WriteLine($"当前实际观看秒数：{now}");
+            Debug.WriteLine($"总时长：{durationSeconds}，当前实际观看秒数：{now}，剩余观看秒数：{durationSeconds - now}");
             if (now <= lastReported) continue; // 还没到上报点
 
+            int increment = now - lastReported;
             double percent = (double)now / durationSeconds * 100;
             bool finished = now >= durationSeconds;
 
-            var result = await ReportProgressAsync(fsresourceId, now, finished, percent, unique);
-            if (result.Success) lastReported = now;
+            var result = await ReportProgressAsync(fsresourceId, increment, finished, percent, unique);
+            if (result.Success)
+            {
+                lastReported = now;
+            }
             // 如果失败，保留 lastReported，下次重试
         }
+
+        Debug.WriteLine("观看已完成。由于观看有概率未完成，可能需要手动登录网站检查完成进度，并完成最后一小部分。");
 
         //var timer = new Stopwatch();
 
@@ -332,7 +337,7 @@ public class CrawlerService
 
         try
         {
-            Debug.WriteLine($"对 {request.RequestUri} 发送 Post 请求。内容：{json}");
+            Debug.WriteLine($"对 {request.RequestUri} 发送 Post 请求。\n   内容：{json}");
             var response = await httpClient.SendAsync(request);
             var responseJson = await response.Content.ReadAsStringAsync();
 
@@ -459,7 +464,7 @@ public class CrawlerService
     {
         if (courseId == 0) return [];
 
-        var url = $"{Urls.SiteUrl}/course/view.php?id={courseId}";
+        var url = $"{Urls.SiteUrl}/grade/report/user/index.php?id={courseId}";
         var html = await httpClient.GetStringAsync(url);
 
         var doc = new HtmlDocument();
@@ -475,34 +480,44 @@ public class CrawlerService
             foreach (var link in links)
             {
                 var href = link.GetAttributeValue("href", "");
-                HtmlNode clonedNode = link.CloneNode(true);
-                var hiddenSpans = clonedNode.SelectNodes(".//span[@class='accesshide']");
-                if (hiddenSpans != null)
-                {
-                    foreach (var hiddenSpan in hiddenSpans)
-                    {
-                        hiddenSpan.Remove();
-                    }
-                }
-                string name = clonedNode.InnerText.Trim();
+                string name = link.InnerText.Trim();
 
                 var match = Regex.Match(href, @"id=(\d+)");
                 if (!match.Success) continue;
-                
-                    int id = int.Parse(match.Groups[1].Value);
-                    if (!subCourseIds.Exists(s => s.CourseId == id))
-                    {
-                        subCourseIds.Add(new SubCourse()
-                        {
-                            CourseId = id,
-                            Name = name,
-                        });
-                    }
-                
+
+                int id = int.Parse(match.Groups[1].Value); 
+
+                var subCourse = new SubCourse
+                {
+                    CourseId = id,
+                    Name = name
+                };
+
+                var tableRow = link.ParentNode.ParentNode.ParentNode.ParentNode.ParentNode;
+
+                Debug.WriteLine(tableRow.InnerHtml);
+
+                var weightNode = tableRow.SelectSingleNode(".//td[contains(@class, 'column-weight')]");
+                subCourse.Weight = weightNode.InnerText.Trim();
+
+                var scoreNode = tableRow.SelectSingleNode(".//td[contains(@class, 'column-grade')]");
+                subCourse.Score = scoreNode.InnerText.Trim();
+
+                var rangeNode = tableRow.SelectSingleNode(".//td[contains(@class, 'column-range')]");
+                subCourse.Range = rangeNode.InnerText.Trim();
+
+                var percentageNode = tableRow.SelectSingleNode(".//td[contains(@class, 'column-percentage')]");
+                subCourse.Percentage = percentageNode.InnerText.Trim();
+
+                var contributionPercentageNode = tableRow.SelectSingleNode(".//td[contains(@class, 'column-contributiontocoursetotal')]");
+                subCourse.ContributionPercentage = contributionPercentageNode.InnerText.Trim();
+
+                if (!subCourseIds.Exists(s => s.CourseId == id))
+                {
+                    subCourseIds.Add(subCourse);
+                }
             }
         }
-
-        
 
         // 将页面 HTML 保存到文件（确保目录存在），修正了 MemoryStream/WriteAsync 的错误用法
         var filePath = @"D:\Common folders\Development\data\courses.json";
@@ -522,6 +537,12 @@ public class CrawlerService
         }
 
         return subCourseIds;
+    }
+
+    public void Dispose()
+    {
+        httpClient.Dispose();
+        httpClientHandler.Dispose();
     }
 }
 

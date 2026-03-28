@@ -14,7 +14,12 @@
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </Window.Resources>
+    
     <Grid>
+        <Label x:Name="StatusLabel"
+               Content="{Binding Path=DebugInfo}"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Bottom" />
         <StackPanel VerticalAlignment="Center"
                     HorizontalAlignment="Center">
             <TextBox x:Name="UsernameInput"
@@ -35,19 +40,12 @@
                     Height="20"
                     Margin="10"
                     Content="获取"
-                    Command="{Binding Path=PerformLoginCommand}"/>
-            <Label x:Name="StatusLabel"
-                   Content="{Binding Path=StatusInfo}"
-                   Height="25"
-                   Width="200"/>
+                    Command="{Binding Path=PerformLoginCommand}" />
             <DataGrid x:Name="CourseList"
                       Margin="10"
                       ItemsSource="{Binding Path=CourseCollection}"
                       Visibility="{Binding Path=LoginSuccess, Converter={StaticResource BoolToVisibilityConverter}}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="课程名称"
-                                        Binding="{Binding FullName}"
-                                        Width="*" />
                     <DataGridTemplateColumn Header="操作"
                                             Width="80">
                         <DataGridTemplateColumn.CellTemplate>
@@ -63,7 +61,7 @@
             </DataGrid>
         </StackPanel>
         <StackPanel x:Name="SubCoursesPanel"
-                    Height="400"
+                    Height="300"
                     Visibility="{Binding Path=SubCoursesVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                     Background="White">
             <Button x:Name="CloseSubCoursesButton"
@@ -72,27 +70,26 @@
                     Width="20"
                     Height="20"
                     HorizontalAlignment="Right" />
-            <DataGrid x:Name="SubCoursesList"
-                      ItemsSource="{Binding Path=SubCourseCollection}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="课程ID"
-                                        Binding="{Binding CourseId}"
-                                        Width="80" />
-                    <DataGridTextColumn Header="课程名称"
-                                        Binding="{Binding Name}"
-                                        Width="*" />
-                    <DataGridTemplateColumn Header="操作"
-                                            Width="80">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="刷课"
-                                        CommandParameter="{Binding CourseId}"
-                                        Command="{Binding Path=DataContext.WatchVideoCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+            <ScrollViewer Height="300">
+                <Grid>
+                    
+                    <DataGrid x:Name="SubCoursesList"
+                              ItemsSource="{Binding Path=SubCourseCollection}">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="操作"
+                                                    Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="刷课"
+                                                CommandParameter="{Binding CourseId}"
+                                                Command="{Binding Path=DataContext.WatchVideoCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </ScrollViewer>
         </StackPanel>
     </Grid>
 </Window>

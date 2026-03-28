@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 
 namespace yunyuketanga.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IDebug
+public partial class MainViewModel : ObservableObject, IDebug, IDisposable
 {
     private readonly CrawlerService crawlerService;
 
@@ -15,6 +15,12 @@ public partial class MainViewModel : ObservableObject, IDebug
     {
         Debug.WriteLine(message);
         DebugInfo += "\n" + message;
+    }
+
+    public void Write(string message)
+    {
+        Debug.Write(message);
+        DebugInfo += message;
     }
 
     public MainViewModel()
@@ -41,7 +47,6 @@ public partial class MainViewModel : ObservableObject, IDebug
 
     bool LoginInfoValid() => !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(Password);
 
-
     [ObservableProperty]
     public partial string StatusInfo { get; set; } = string.Empty;
 
@@ -59,28 +64,29 @@ public partial class MainViewModel : ObservableObject, IDebug
     [RelayCommand(CanExecute = nameof(LoginInfoValid))]
     async Task PerformLogin()
     {
+        DebugInfo = string.Empty;
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
         {
-            StatusInfo = "请输入合法用户名或密码";
+            WriteLine("请输入合法用户名或密码");
             return;
         }
 
-        StatusInfo = "正在发送登录请求";
+        WriteLine("正在发送登录请求");
         IsBusy = true;
 
         var loginResult = await crawlerService.PerformLoginAsync(Username, Password);
         
         if (loginResult.Success)
         {
-            StatusInfo = "登录成功。正在获取所有课程列表";
+            WriteLine("登录成功。正在获取所有课程列表");
             var courseList = await crawlerService.GetAllCoursesAsync();
             if (courseList.Count == 0)
             {
-                StatusInfo = "获取课程列表失败！";
+                WriteLine("获取课程列表失败！");
                 IsBusy = false;
                 return;
             }
-            StatusInfo = "获取课程列表成功";
+            WriteLine("获取课程列表成功");
             LoginSuccess = true;
 
             var CourseCollectionCopy = new ObservableCollection<Course>();
@@ -94,7 +100,7 @@ public partial class MainViewModel : ObservableObject, IDebug
         }
         else
         {
-            StatusInfo = $"登录失败！原因：{loginResult.Message}";
+            WriteLine($"登录失败！原因：{loginResult.Message}");
             Debug.WriteLine(loginResult.Message);
         }
     }
@@ -102,18 +108,20 @@ public partial class MainViewModel : ObservableObject, IDebug
     [RelayCommand]
     async Task FetchAndShowSubCourses(int id)
     {
+        DebugInfo = string.Empty;
         SubCoursesVisible = true;
 
-        if (CachedSubCourseId == id) return;
 
         CachedSubCourseId = id;
 
         var subCourses = await crawlerService.GetSubCourseIdsAsync(id);
         if (subCourses.Count == 0)
         {
-            StatusInfo = "获取子课程列表失败！";
+            WriteLine("获取子课程列表失败！");
             return;
         }
+
+        WriteLine("获取子课程列表成功！");
 
         var subCoursesCollectionCopy = new ObservableCollection<SubCourse>();
 
@@ -134,6 +142,13 @@ public partial class MainViewModel : ObservableObject, IDebug
     [RelayCommand]
     async Task WatchVideo(int id)
     {
+        DebugInfo = string.Empty;
+        WriteLine($"观看的视频 id: {id}");
         await crawlerService.WatchVideoAsync(id);
+    }
+
+    public void Dispose()
+    {
+        crawlerService.Dispose();
     }
 }
